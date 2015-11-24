@@ -6,4 +6,4 @@ MySensors
 
 http://www.mysensors.org
 
-ATTENTION CETTE VERSION DE DRIVER N'EST PAS COMPLETEMENT OPERATIONNELLE !!!
+Compatible avec la version 1.5 de MySensors.

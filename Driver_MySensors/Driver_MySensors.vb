@@ -48,6 +48,8 @@ Public Class Driver_Arduino_USB
     Dim _acknowledge As Boolean = False
 
     'param avancé
+    Dim _Ack As Byte
+    Dim _ACKNOLEDGE As Boolean = False
     Dim _DEBUG As Boolean = False
 
 #End Region
@@ -304,12 +306,20 @@ Public Class Driver_Arduino_USB
                     _DEBUG = _Parametres.Item(0).Valeur
                     _BAUD = _Parametres.Item(1).Valeur
                     _RCVERROR = _Parametres.Item(2).Valeur
+                    _ACKNOLEDGE = _Parametres.Item(3).Valeur
                 Catch ex As Exception
                     _Server.Log(TypeLog.ERREUR, TypeSource.DRIVER, Me.Nom & " Start", "ERR: Erreur dans les paramétres avancés. utilisation des valeur par défaut" & ex.Message)
+                    _ACKNOLEDGE = False
                     _DEBUG = False
                     _BAUD = 57600
                     _RCVERROR = True
                 End Try
+                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_DEBUG " & _DEBUG)
+                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_BAUD " & _BAUD)
+                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_RCVERROR " & _RCVERROR)
+                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_ACKNOLEDGE " & _ACKNOLEDGE)
+                _Ack = Convert.ToInt32(_ACKNOLEDGE)
+                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_Ack " & _Ack)
 
                 If _Com = "" Or _Com = " " Then
                     _Server.Log(TypeLog.ERREUR, TypeSource.DRIVER, Me.Nom & " Start", "Le port COM est vide veuillez le renseigner")
@@ -389,59 +399,134 @@ Public Class Driver_Arduino_USB
         Try
             If _Enable = False Then Exit Sub
             If _IsConnect = False Then
-                WriteLog("Le driver n'est pas démarré, impossible de communiquer avec l'arduino")
+                WriteLog("Le driver n'est pas démarré, impossible de communiquer avec la passerelle MySensors")
                 Exit Sub
             End If
-            If _DEBUG Then WriteLog("DBG: WRITE Device " & Objet.Name & " <-- " & Command())
+            If _DEBUG Then WriteLog("DBG: WRITE Device " & Objet.Name & " <-- " & Command)
 
             'verification si adresse1 n'est pas vide
             If String.IsNullOrEmpty(Objet.Adresse1) Or Objet.Adresse1 = "" Then
-                WriteLog("ERR: WRITE l'adresse de l'arduino doit etre renseigné (ex: 1 pour un arduino maitre, 2-255 pour un arduino esclave) : " & Objet.Name)
+                WriteLog("ERR: WRITE l'adresse du noeud MySensors doit etre renseigné : " & Objet.Name)
                 Exit Sub
             End If
 
-
-            'suivant le type du PIN on lance la bonne commande : ENTREE_ANA|ENTREE_DIG|SORTIE_DIG|PWM|1WIRE
+            'verification si adresse1 n'est pas vide
+            If String.IsNullOrEmpty(Objet.Adresse2) Or Objet.Adresse2 = "" Then
+                WriteLog("ERR: WRITE l'ID capteur/actionneur MySensors doit etre renseigné : " & Objet.Name)
+                Exit Sub
+            End If
 
             Dim MySensorsCommand As String = ""
             Select Case UCase(Objet.Modele)
-                Case "VARIABLE"
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " VR " & Objet.Adresse2
-                    WriteLog("DBG: Commande passée à l arduino de type : VARIABLE")
-                Case "ANALOG_IN"
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " AR " & Objet.Adresse2
-                    WriteLog("DBG: Commande passée à l arduino de type : ANALOG_IN")
-                Case "DIGITAL_IN"
-                    WriteLog("DBG: Commande passée à l arduino de type : DIGITAL_IN")
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DR " & Objet.Adresse2
-                Case "DHTXX"
-                    WriteLog("DBG: Commande passée à l arduino de type : DHTXX")
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DHTXX " & Objet.Adresse2
-                Case "BMP180"
-                    WriteLog("DBG: Commande passée à l arduino de type : BMP180")
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " BMP180 " & Objet.Adresse2
-                Case "CUSTOM"
-                    WriteLog("DBG: Commande passée à l arduino de type : CUSTOM")
-                    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " " & Objet.Adresse2
-                Case "1WIRE"
-                    WriteLog("le 1-wire n'est pas encore géré :" & Objet.Name)
-                    Exit Sub
-                Case ""
-                    WriteLog("ERR: WRITE Pas de protocole d'emission pour " & Objet.Name)
-                    Exit Sub
+
+                Case "V_TEMP"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";0;0" '0 
+                Case "V_HUM"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";1;0" '1:
+                Case "V_STATUS"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";2;0" '2:
+                Case "V_LIGHT"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";2;0" '2:
+                Case "V_PERCENTAGE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";3;0" '3:
+                Case "V_DIMMER"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";3;0" '3:
+                Case "V_PRESSURE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";4;0" '4:
+                Case "V_FORECAST"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";5;0" '5:
+                Case "V_RAIN"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";6;0" '6:
+                Case "V_RAINRATE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";7;0" '7:
+                Case "V_WIND"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";8;0" '8:
+                Case "V_GUST"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";9;0" '9:
+                Case "V_DIRECTION"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";10;0" '10:
+                Case "V_UV"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";11;0" '11:
+                Case "V_WEIGHT"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";12;0" '12:
+                Case "V_DISTANCE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";13;0" '13:
+                Case "V_IMPEDANCE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";14;0" '14:
+                Case "V_ARMED"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";15;0" '15:
+                Case "V_TRIPPED"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";16;0" '16:
+                Case "V_WATT"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";17;0" '17:
+                Case "V_KWH"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";18;0" '18:
+                Case "V_SCENE_ON"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";19;0" '19:
+                Case "V_SCENE_OFF"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";20;0" '20:
+                Case "V_HVAC_FLOW_STATE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";21;0" '21:
+                Case "V_HVAC_SPEED"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";22;0" '22:
+                Case "V_LIGHT_LEVEL"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";23;0" '23:
+                Case "V_VAR1"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";24;0" '24:
+                Case "V_VAR2"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";25;0" '25:
+                Case "V_VAR3"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";26;0" '26:
+                Case "V_VAR4"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";27;0" '27:
+                Case "V_VAR5"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";28;0" '28:
+                Case "V_UP"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";29;0" '29:
+                Case "V_DOWN"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";30;0" '30:
+                Case "V_STOP"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";31;0" '31:
+                Case "V_IR_SEND"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";32;0" '32:
+                Case "V_IR_RECEIVE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";33;0" '33:
+                Case "V_FLOW"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";34;0" '34:
+                Case "V_VOLUME"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";35;0" '35:
+                Case "V_LOCK_STATUS"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";36;0" '36:
+                Case "V_LEVEL"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";37;0" '37:
+                Case "V_VOLTAGE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";38;0" '38:
+                Case "V_CURRENT"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";39;0" '39:
+                Case "V_RGB"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";40;0" '40:
+                Case "V_RGBW"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";41;0" '41:
+                Case "V_ID"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";42;0" '42:
+                Case "V_UNIT_PREFIX"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";43;0" '43:
+                Case "V_HVAC_SETPOINT_COOL"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";44;0" '44:
+                Case "V_HVAC_SETPOINT_HEAT"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";45;0" '45:
+                Case "V_HVAC_FLOW_MODE"
+                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";2;" & _Ack & ";46;0" '46:
                 Case Else
-                    WriteLog("ERR: WRITE Protocole non géré : " & Objet.Modele.ToString.ToUpper)
+                    WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
                     Exit Sub
             End Select
-            'End If
 
-            'If MySensorsCommand <> "" Then
-            'If _DEBUG Then WriteLog("DBG: WRITE Composant " & Objet.Name & " URL : " & MySensorsCommand)
-
-            WriteLog("DBG: Commande passée à l arduino : " & MySensorsCommand)
+            WriteLog("DBG: Commande passée à la passerelle MySensors : " & MySensorsCommand)
             serialPortObj.WriteLine(MySensorsCommand) ', 0, 8)
+
         Catch ex As Exception
-            _Server.Log(TypeLog.ERREUR, TypeSource.DRIVER, Me.Nom & " Read", ex.Message)
+            WriteLog("ERR: WRITE " & ex.ToString)
         End Try
     End Sub
 
@@ -455,244 +540,420 @@ Public Class Driver_Arduino_USB
         Try
             If _Enable = False Then Exit Sub
             If _IsConnect = False Then
-                WriteLog("Le driver n'est pas démarré, impossible de communiquer avec l'arduino")
+                WriteLog("Le driver n'est pas démarré, impossible de communiquer avec la passerelle MySensors")
                 Exit Sub
             End If
-            If _DEBUG Then WriteLog("DBG: WRITE Device " & Objet.Name & " <-- " & Command)
+            '           If _DEBUG Then WriteLog("DBG: WRITE Device " & Objet.Name & " <-- " & Command)
+            WriteLog("DBG: WRITE Device " & Objet.Name & " <-- " & Command)
 
             'verification si adresse1 n'est pas vide
             If String.IsNullOrEmpty(Objet.Adresse1) Or Objet.Adresse1 = "" Then
-                WriteLog("ERR: WRITE l'adresse de l'arduino doit etre renseigné (ex: 1 pour un arduino maitre, 2-255 pour un arduino esclave) : " & Objet.Name)
+                WriteLog("ERR: WRITE l'adresse du noeud MySensors doit etre renseigné : " & Objet.Name)
+                Exit Sub
+            End If
+
+            'verification si adresse1 n'est pas vide
+            If String.IsNullOrEmpty(Objet.Adresse2) Or Objet.Adresse2 = "" Then
+                WriteLog("ERR: WRITE l'ID capteur/actionneur MySensors doit etre renseigné : " & Objet.Name)
                 Exit Sub
             End If
 
             Dim MySensorsCommand As String = ""
-            Select Case UCase(Objet.Modele)
-                Case "V_LIGHT"
-                    Select Case Command
-                        Case "ON"
-                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;2;1"
-                        Case "OFF"
-                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;2;0"
-                    End Select
-                Case "V_DIMMER"
-                    Select Case Command
-                        Case "ON"
-                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;3;100"
-                        Case "OFF"
-                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;3;0"
-                        Case "DIM"
-                            If Not IsNothing(Parametre1) Then
-                                If IsNumeric(Parametre1) Then
-                                    ''Conversion du parametre de % (0 à 100) en 0 à 255
-                                    'Parametre1 = CInt(Parametre1 * 255 / 100)
-                                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;3;" & Parametre1
-                                Else
-                                    WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
-                                End If
-                            Else
-                                WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
-                            End If
-                        Case "PWM"
-                            If Not IsNothing(Parametre1) Then
-                                If IsNumeric(Parametre1) Then
-                                    If CInt(Parametre1) > 255 Then Parametre1 = 255
-                                    If CInt(Parametre1) < 0 Then Parametre1 = 0
-                                    'Conversion du parametre de 0 à 255 en % (0 à 100)
-                                    Parametre1 = CInt(Parametre1 * 100 / 255)
-                                    MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;1;3;" & Parametre1
-                                Else
-                                    WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
-                                End If
-                            Else
-                                WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
-                            End If
-                        Case Else
-                            WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF/DIM/PWM supporté sur une SORTIE: Analogique write)")
+            If Command = "VAR" Then
+                Select Case UCase(Objet.Modele)
+                    Case "V_VAR1"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";24;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_VAR V_VAR1 Il manque un parametre pour (" & Objet.Name & ")")
                             Exit Sub
-                    End Select
-                Case Else
-                    WriteLog("ERR: WRITE : Ce type de Sensor/Pin ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
-                    Exit Sub
-            End Select
-            'If Command = "CONFIG_TYPE_PIN" Then
-            '    Select Case UCase(Objet.Modele)
-            '        Case "ANALOG_IN"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PM " & Objet.Adresse2 & " 0"
-            '        Case "DIGITAL_IN"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PM " & Objet.Adresse2 & " 0"
-            '        Case "DIGITAL_OUT"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PM " & Objet.Adresse2 & " 1"
-            '        Case "DIGITAL_PWM"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PM " & Objet.Adresse2 & " 1"
-            '        Case "LCD"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PM " & Objet.Adresse2 & " 1"
-            '        Case "KPAD"
-            '            ' Pas d'initialisation
-            '        Case "1WIRE"
-            '            ' Pas d'initialisation
-            '        Case "DHTxx"
-            '            ' Pas d'initialisation
-            '        Case "BMP180"
-            '            ' Pas d'initialisation
-            '        Case Else
-            '            WriteLog("ERR: WRITE CONFIG_TYPE_PIN : Ce type de PIN ne peut pas être configuré : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
-            '            Exit Sub
-            '    End Select
-            'ElseIf Command = "SETLCD" Then
-            '    WriteLog("DBG: Commande passée à l arduino de type : SETLCD")
-            '    Select Case UCase(Objet.Modele)
-            '        Case "LCD"
-            '            If Not IsNothing(Parametre1) And Not IsNothing(Parametre2) Then
-            '                Dim Parametre2a As String = Parametre2.Replace(" ", "/#")
-            '                MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " SETLCD " & Parametre1 & " " & Parametre2a
-            '                WriteLog("DBG: Commande passée à l arduino : " & MySensorsCommand)
-            '            Else
-            '                WriteLog("ERR: WRITE DIM Il manque au moins un parametre (" & Objet.Name & ")")
-            '            End If
-            '        Case Else
-            '            WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF ou SETLCD supportés)")
-            '            Exit Sub
-            '    End Select
-            '    'Else
-            '    '   WriteLog("ERR: WRITE SETVAR : Il manque la valeur à passer à la variable en parametre : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
-            '    '  Exit Sub
-            '    'End If
-            'ElseIf Command = "SETVAR" Then
-            '    If Not IsNothing(Parametre1) Then
-            '        Select Case UCase(Objet.Modele)
-            '            Case "VARIABLE" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " VW " & Objet.Adresse2 & "_" & Parametre1
-            '            Case Else
-            '                WriteLog("ERR: WRITE SETVAR : Seulement une variable peut utilisé la fonction SETVAR : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
-            '                Exit Sub
-            '        End Select
-            '    Else
-            '        WriteLog("ERR: WRITE SETVAR : Il manque la valeur à passer à la variable en parametre : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
-            '        Exit Sub
-            '    End If
-            'ElseIf Command = "READX" Then
-            '    '    MySensorsCommand = "ACT ADR " & Objet.Adresse1 & "/?homidom_READX"
-            'Else
-            '    Select Case UCase(Objet.Modele)
-            '        'Case "ARMED"
-            '        'Case "CURRENT"
-            '        'Case "DIMMER"
-            '        'Case "DIRECTION"
-            '        'Case "DISTANCE"
-            '        'Case "DOWN"
-            '        'Case "DUST_LEVEL"
-            '        'Case "FLOWVOLUME"
-            '        'Case "FORECAST"
-            '        'Case "GUST"
-            '        'Case "HEATER"
-            '        'Case "HEATER_SW"
-            '        'Case "HUM"
-            '        'Case "IMPEDANCE"
-            '        'Case "IR_SEND"
-            '        'Case "IR_RECEIVE"
-            '        'Case "LIGHT"
-            '        'Case "LIGHT_LEVEL"
-            '        'Case "LOCK_STATUS"
-            '        'Case "KWH"
-            '        'Case "PRESSURE"
-            '        'Case "RAIN"
-            '        'Case "RAINRATE"
-            '        'Case "SCENE_ON"
-            '        'Case "SCENE_OFF"
-            '        'Case "TEMP"
-            '        'Case "STOP"
-            '        'Case "TRIPPED"
-            '        'Case "UP"
-            '        'Case "UV"
-            '        'Case "VAR1"
-            '        'Case "VAR2"
-            '        'Case "VAR3"
-            '        'Case "VAR4"
-            '        'Case "VAR5"
-            '        'Case "VOLTAGE"
-            '        'Case "WATT"
-            '        'Case "WEIGHT"
-            '        'Case "WIND"
-            '        Case "CUSTOM"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " " & Objet.Adresse2
-            '            WriteLog("DBG: Commande passée à l arduino de type : ANALOG_IN")
-            '        Case "ANALOG_IN"
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " AR " & Objet.Adresse2
-            '            WriteLog("DBG: Commande passée à l arduino de type : ANALOG_IN")
-            '        Case "DIGITAL_IN"
-            '            WriteLog("DBG: Commande passée à l arduino de type : DIGITAL_IN")
-            '            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DR " & Objet.Adresse2
-            '        Case "DIGITAL_OUT"
-            '            'Digital Write
-            '            WriteLog("DBG: Commande passée à l arduino de type : DIGITAL_OUT")
-            '            Select Case Command
-            '                Case "ON" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DW " & Objet.Adresse2 & " 1"
-            '                Case "OFF" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DW " & Objet.Adresse2 & " 0"
-            '                Case Else
-            '                    WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF supporté sur une SORTIE: digital write)")
-            '                    Exit Sub
-            '            End Select
-            '        Case "DIGITAL_PWM"
-            '            'Analogique write (0-255)
-            '            'on convertit ON/OFF/DIM en DIM de 0 à 255 (commande PWM sur l'arduino)
-            '            WriteLog("DBG: Commande passée à l arduino de type : DIGITAL_PWM")
-            '            Select Case Command
-            '                Case "ON" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PWM " & Objet.Adresse2 & " 255"
-            '                Case "OFF" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PWM " & Objet.Adresse2 & " 0"
-            '                Case "DIM"
-            '                    If Not IsNothing(Parametre1) Then
-            '                        If IsNumeric(Parametre1) Then
-            '                            'Conversion du parametre de % (0 à 100) en 0 à 255
-            '                            Parametre1 = CInt(Parametre1 * 255 / 100)
-            '                            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " DW " & Objet.Adresse2 & " " & Parametre1
-            '                        Else
-            '                            WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
-            '                        End If
-            '                    Else
-            '                        WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
-            '                    End If
-            '                Case "PWM"
-            '                    If Not IsNothing(Parametre1) Then
-            '                        If IsNumeric(Parametre1) Then
-            '                            If CInt(Parametre1) > 255 Then Parametre1 = 255
-            '                            If CInt(Parametre1) < 0 Then Parametre1 = 0
-            '                            MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " PWM " & Objet.Adresse1 & " " & Parametre1
-            '                        Else
-            '                            WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
-            '                        End If
-            '                    Else
-            '                        WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
-            '                    End If
-            '                Case Else
-            '                    WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF/DIM/PWM supporté sur une SORTIE: Analogique write)")
-            '                    Exit Sub
-            '            End Select
-            '        Case "LCD"
-            '            'Digital Write
-            '            WriteLog("DBG: Commande passée à l arduino de type : LCD")
-            '            Select Case Command
-            '                Case "ON" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " LCD " & Objet.Adresse2 & " 1"
-            '                Case "OFF" : MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " LCD " & Objet.Adresse2 & " 0"
-            '                    'Case "SETLCD"
-            '                    '    If Not IsNothing(Parametre1) And Not IsNothing(Parametre2) Then
-            '                    '        MySensorsCommand = "ACT ADR " & Objet.Adresse1 & " SETLCD " & Parametre1 & " " & Parametre2
-            '                    '    Else
-            '                    '        WriteLog("ERR: WRITE DIM Il manque au moins un parametre (" & Objet.Name & ")")
-            '                    '    End If
-            '                Case Else
-            '                    WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF ou SETLCD supportés)")
-            '                    Exit Sub
-            '            End Select
-            '        Case ""
-            '            WriteLog("ERR: WRITE Pas de protocole d'emission pour " & Objet.Name)
-            '            Exit Sub
-            '        Case Else
-            '            WriteLog("ERR: WRITE Protocole non géré : " & Objet.Modele.ToString.ToUpper)
-            '            Exit Sub
-            '    End Select
-            'End If
+                        End If
+                    Case "V_VAR2"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";25;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_VAR V_VAR2 Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case "V_VAR3"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";26;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_VAR V_VAR3 Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case "V_VAR4"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";27;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_VAR V_VAR4 Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case "V_VAR5"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";28;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_VAR V_VAR5 Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "UP" Then
+                ' S_COVER
+                ' V_UP (Window covering. Up)
+                Select UCase(Objet.Modele)
+                    Case "V_UP"
+                        MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";29;0"
+                        'If Not IsNothing(Parametre1) Then
+                        'MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";29;" & Parametre1
+                        'Else
+                        'WriteLog("ERR: V_UP Il manque un parametre pour (" & Objet.Name & ")")
+                        'Exit Sub
+                        'End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "DOWN" Then
+                ' S_COVER
+                ' V_DOWN (Window covering. Down)
+                Select Case UCase(Objet.Modele)
+                    Case "V_DOWN"
+                        MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";30;0"
+                        ' If Not IsNothing(Parametre1) Then
+                        'MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";30;" & Parametre1
+                        'Else
+                        'WriteLog("ERR: V_DOWN Il manque un parametre pour (" & Objet.Name & ")")
+                        'Exit Sub
+                        'End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "STOP" Then
+                ' S_COVER
+                ' V_STOP (Window covering. Stop)
+                Select Case UCase(Objet.Modele)
+                    Case "V_STOP"
+                        MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";31;0"
+                        'If Not IsNothing(Parametre1) Then
+                        'MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";31;" & Parametre1
+                        'Else
+                        'WriteLog("ERR: V_STOP Il manque un parametre pour (" & Objet.Name & ")")
+                        'Exit Sub
+                        'End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "IRSEND" Then
+                ' S_IR
+                ' V_IR_SEND (This message contains a received IR-command)
+                Select Case UCase(Objet.Modele)
+                    Case "V_IR_SEND"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";32;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_IR_SEND Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "LOCKSTATUS" Then
+                ' S_LOCK
+                ' V_LOCK_STATUS (Set or get lock status. 1=Locked, 0=Unlocked)
+                Select Case UCase(Objet.Modele)
+                    Case "V_LOCK_STATUS"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";36;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_LOCK_STATUS Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+                ' S_DUST, S_AIR_QUALITY, S_SOUND(dB), S_VIBRATION(hz), S_LIGHT_LEVEL(lux)
+                ' V_LEVEL (Used for sending level-value)
+                Select Case UCase(Objet.Modele)
+                    Case "V_LEVEL"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";37;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_LEVEL Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "COLORSENSOR" Then
+                ' S_RGB_LIGHT, S_COLOR_SENSOR
+                ' V_RGB (RGB value transmitted as ASCII hex string (I.e "ff0000" for red))
+                Select Case UCase(Objet.Modele)
+                    Case "V_RGB"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";40;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_RGB Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "RGB" Then
+                ' S_RGBW_LIGHT
+                ' V_RGBW (RGBW value transmitted as ASCII hex string (I.e "ff0000ff" for red + full white))
+                Select Case UCase(Objet.Modele)
+                    Case "V_RGBW"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";41;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_RGBW Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "HVACSETPOINTCOOL" Then
+                ' S_HVAC
+                ' V_HVAC_SETPOINT_COOL (HVAC cold setpoint)
+                Select Case UCase(Objet.Modele)
+                    Case "V_HVAC_SETPOINT_COOL"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";44;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_HVAC_SETPOINT_COOL Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "HVACSETPOINTHEAT" Then
+                ' S_HVAC, S_HEATER
+                ' V_HVAC_SETPOINT_HEAT (HVAC/Heater setpoint)
+                Select Case UCase(Objet.Modele)
+                    Case "V_HVAC_SETPOINT_HEAT"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";45;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_HVAC_SETPOINT_HEAT Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "HVACFLOWMODE" Then
+                ' S_HVAC
+                ' V_HVAC_FLOW_MODE (Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn"))
+                Select Case UCase(Objet.Modele)
+                    Case "V_HVAC_FLOW_MODE"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";46;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_HVAC_FLOW_MODE Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "HVACSPEED" Then
+                ' S_HVAC, S_HEATER
+                ' V_HVAC_SPEED (HVAC/Heater fan speed ("Min", "Normal", "Max", "Auto"))
+                Select Case UCase(Objet.Modele)
+                    Case "V_HVAC_SPEED"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";21;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_HVAC_SPEED Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "HVACFLOWSTATE" Then
+                ' S_HVAC, S_HEATER
+                ' V_HVAC_FLOW_STATE (Mode of header. One of "Off", "HeatOn", "CoolOn", or "AutoChangeOver")
+                Select Case UCase(Objet.Modele)
+                    Case "V_HVAC_FLOW_STATE"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";22;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_HVAC_FLOW_STATE Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "LIGHTLEVEL" Then
+                ' S_LIGHT_LEVEL
+                ' V_LIGHT_LEVEL (Uncalibrated light level. 0-100%. Use V_LEVEL for light level in lux.)
+                Select Case UCase(Objet.Modele)
+                    Case "V_LIGHT_LEVEL"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";23;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_LIGHT_LEVEL Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "SCENEON" Then
+                ' S_SCENE_CONTROLLER
+                ' V_SCENE_ON (Turn on a scene)
+                Select Case UCase(Objet.Modele)
+                    Case "V_SCENE_ON"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";19;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_SCENE_ON Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "SCENEOFF" Then
+                ' S_SCENE_CONTROLLER
+                ' V_SCENE_OFF (Turn off a scene)
+                Select Case UCase(Objet.Modele)
+                    Case "V_SCENE_OFF"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";20;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_SCENE_OFF Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "TRIPPED" Then
+                ' S_DOOR, S_MOTION, S_SMOKE, S_SPRINKLER, S_WATER_LEAK, S_SOUND, S_VIBRATION, S_MOISTURE
+                ' V_TRIPPED (Tripped status of a security sensor. 1=Tripped, 0=Untripped)
+                Select Case UCase(Objet.Modele)
+                    Case "V_TRIPPED"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";16;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_TRIPPED Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            ElseIf Command = "ARMED" Then
+                ' S_DOOR, S_MOTION, S_SMOKE, S_SPRINKLER, S_WATER_LEAK, S_SOUND, S_VIBRATION, S_MOISTURE
+                ' V_ARMED (Armed status of a security sensor. 1=Armed, 0=Bypassed)
+                Select Case UCase(Objet.Modele)
+                    Case "V_ARMED"
+                        If Not IsNothing(Parametre1) Then
+                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";15;" & Parametre1
+                        Else
+                            WriteLog("ERR: V_ARMED Il manque un parametre pour (" & Objet.Name & ")")
+                            Exit Sub
+                        End If
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+                '            ElseIf Command = "PERCENTAGE" Then
+                '                ' S_DIMMER
+                '                ' V_PERCENTAGE (Percentage value. 0-100 (%))
+                '                Select Case UCase(Objet.Modele)
+                '                    Case "V_PERCENTAGE"
+                '                        If Not IsNothing(Parametre1) Then
+                '                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;" & Parametre1
+                '                        Else
+                '                            WriteLog("ERR: V_PERCENTAGE Il manque un parametre pour (" & Objet.Name & ")")
+                '                            Exit Sub
+                '                        End If
+                '                    Case Else
+                '                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                '                        Exit Sub
+                '                End Select
+                '            ElseIf Command = "DIMMER" Then
+                '                ' S_DIMMER
+                '                ' V_DIMMER (Deprecated. Alias for V_PERCENTAGE. Dimmer value. 0-100 (%))
+                '                Select Case UCase(Objet.Modele)
+                '                    Case "V_DIMMER"
+                '                        If Not IsNothing(Parametre1) Then
+                '                            MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;" & Parametre1
+                '                        Else
+                '                            WriteLog("ERR: V_DIMMER Il manque un parametre pour (" & Objet.Name & ")")
+                '                            Exit Sub
+                '                        End If
+                '                    Case Else
+                '                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                '                        Exit Sub
+                '                End Select
+            Else
+                Select Case UCase(Objet.Modele)
+                    Case "V_LIGHT", "V_STATUS"
+                        Select Case Command
+                            Case "ON"
+                                MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";2;1"
+                            Case "OFF"
+                                MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";2;0"
+                        End Select
+                    Case "V_DIMMER", "V_PERCENTAGE"
+                        Select Case Command
+                            Case "ON"
+                                MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;100"
+                            Case "OFF"
+                                MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;0"
+                            Case "DIM"
+                                If Not IsNothing(Parametre1) Then
+                                    If IsNumeric(Parametre1) Then
+                                        ''Conversion du parametre de % (0 à 100) en 0 à 255
+                                        'Parametre1 = CInt(Parametre1 * 255 / 100)
+                                        MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;" & Parametre1
+                                    Else
+                                        WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
+                                    End If
+                                Else
+                                    WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
+                                End If
+                            Case "PWM"
+                                If Not IsNothing(Parametre1) Then
+                                    If IsNumeric(Parametre1) Then
+                                        If CInt(Parametre1) > 255 Then Parametre1 = 255
+                                        If CInt(Parametre1) < 0 Then Parametre1 = 0
+                                        'Conversion du parametre de 0 à 255 en % (0 à 100)
+                                        Parametre1 = CInt(Parametre1 * 100 / 255)
+                                        MySensorsCommand = Objet.Adresse1 & ";" & Objet.adresse2 & ";1;" & _Ack & ";3;" & Parametre1
+                                    Else
+                                        WriteLog("ERR: WRITE DIM Le parametre " & CStr(Parametre1) & " n'est pas un entier (" & Objet.Name & ")")
+                                    End If
+                                Else
+                                    WriteLog("ERR: WRITE DIM Il manque un parametre (" & Objet.Name & ")")
+                                End If
+                            Case Else
+                                WriteLog("ERR: Send AC : Commande invalide : " & Command & " (ON/OFF/DIM/PWM supporté sur une SORTIE: Analogique write)")
+                                Exit Sub
+                        End Select
+                    Case Else
+                        WriteLog("ERR: WRITE : Ce type de capteur/actionneur ne peut pas être piloté : " & Objet.Modele.ToString.ToUpper & " (" & Objet.Name & ")")
+                        Exit Sub
+                End Select
+            End If
 
-            WriteLog("DBG: Commande passée à l arduino : " & MySensorsCommand)
+            WriteLog("DBG: Commande passée à la passerelle MySensors : " & MySensorsCommand)
             serialPortObj.WriteLine(MySensorsCommand) ', 0, 8)
 
         Catch ex As Exception
@@ -800,6 +1061,7 @@ Public Class Driver_Arduino_USB
             add_paramavance("BaudRate", "Vitesse du port COM (57600 ou 9600)", 9600)
             add_paramavance("ErrorReceived", "Gérer les erreurs de réception (True=Activé, False=Désactivé)", True)
             'add_paramavance("AutoDiscover", "Permet de créer automatiquement des composants si ceux-ci n'existent pas encore (True/False)", False)
+            add_paramavance("Acknoledge", "Activer l'accuser réception MySensors (True=Activé/False=Désactivé)", False)
 
             'liste des devices compatibles
             _DeviceSupport.Add(ListeDevices.APPAREIL.ToString)
@@ -826,16 +1088,32 @@ Public Class Driver_Arduino_USB
             _DeviceSupport.Add(ListeDevices.VITESSEVENT.ToString)
             _DeviceSupport.Add(ListeDevices.VOLET.ToString)
 
-            'ajout des commandes avancées pour les devices
-            'add_devicecommande("COMMANDE", "DESCRIPTION", nbparametre)
-            'add_devicecommande("CONFIG_TYPE_PIN", "configurer le type de PIN sur l arduino suivant les propriétés du composant", 0)
-            'add_devicecommande("PWM", "Envoyer une commande PWM avec une valeur de 0 à 255", 1)
-            'add_devicecommande("SETVAR", "Envoyer une valeur de type string à une variable sur l arduino", 1)
-            'add_devicecommande("READX", "Lire les valeurs de toutes les entrées de l'arduino et mettre tous les composants Homidom à jour", 1)
-            'add_devicecommande("SETLCD", "Ecrire un texte sur un ecran LCD.", 2)
-
             'Libellé Driver
             Add_LibelleDriver("HELP", "Aide...", "Pas d'aide actuellement...")
+
+            'ajout des commandes avancées pour les devices
+            'add_devicecommande("COMMANDE", "DESCRIPTION", nbparametre)
+            add_devicecommande("UP", "Ouverture volet de fenêtre", 0)
+            add_devicecommande("DOWN", "Fermeture volet de fenetre", 0)
+            add_devicecommande("STOP", "Arrêt commande volet de fenêtre", 0)
+            add_devicecommande("IRSEND", "Message contenant une commande IR", 1)
+            add_devicecommande("LOCKSTATUS", "Défini ou demande un stattu de vérouillage. 1=vérouillé, 0=dévérouillé", 1)
+            add_devicecommande("RGB", "RGB valeur transmise sous forme de chaîne ASCII hex (Ex. ff0000 pour rouge", 1)
+            add_devicecommande("RGBW", "RGBW valeur transmise sous forme de chaîne ASCII hex (Ex. ff0000ff pour rouge + Blanc", 1)
+            add_devicecommande("HVACSETPOINTCOOL", "HVAC: consigne froid", 1)
+            add_devicecommande("HVACSETPOINTHEAT", "HVAC: consigne chaud", 1)
+            add_devicecommande("HVACFLOWMODE", "HVAC: Mode de fonctionnement (Auto, ContinuousOn, PeriodicOn)", 1)
+            add_devicecommande("HVACSPEED", "HVAC: Vitesse du ventilateur (Min, Normal, Max, Auto)", 1)
+            add_devicecommande("HVACFLOWSTATE", "Etat de fonctionnement (Off, HeatOn, CoolOn, AutoChangeOver", 1)
+            add_devicecommande("LEVEL", "Utilisé pour envoyer un niveau", 1)
+            add_devicecommande("LIGHTLEVEL", "Uncalibrated light level. 0-100%. Use V_LEVEL for light level in lux.", 1)
+            add_devicecommande("SCENEON", "Active un sénario", 0)
+            add_devicecommande("SCENEOFF", "Désactive un sénario", 0)
+            add_devicecommande("TRIPPED", "État (déclenché) d'un capteur de sécurité. 1=Déclenché, 0=Non-Déclenché", 1)
+            add_devicecommande("ARMED", "État (armé) d'un capteur de sécurité. 1=Activé, 0=Désactivé", 1)
+            add_devicecommande("PERCENTAGE", "Valeur en pourcentage. 0-100 (%)", 1)
+            add_devicecommande("DIMMER", "[Déconseillé] Alias de V_PERCENTAGE. Valeur en pourcentage. 0-100 (%)", 1)
+            add_devicecommande("VAR", "Envoyer une valeur de type string à une variable V_VARx", 1)
 
             'Libellé Device
             Add_LibelleDevice("ADRESSE1", "ID du noeud", "Valeur de type numérique")
@@ -888,13 +1166,6 @@ Public Class Driver_Arduino_USB
     ''' <remarks></remarks>
     Private Sub DataReceived(ByVal sender As Object, ByVal e As SerialDataReceivedEventArgs)
         Try
-            'If first Then
-            'first = False
-            'Else
-            'on attend d'avoir le reste
-            'System.Threading.Thread.Sleep(500)
-
-            '                Dim line As String = serialPortObj.ReadExisting
             serialPortObj.ReadTimeout = 1000
             Do
                 Dim line As String = serialPortObj.ReadLine()
@@ -916,83 +1187,113 @@ Public Class Driver_Arduino_USB
                             Case "0" ' Message type "presentation"
                                 _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Message Type 'presentation' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                 Select Case aryLine(4)
-                                    Case "0"
+                                    Case "0" ' Door and window sensors
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_DOOR' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "1"
+                                    Case "1" ' Motion sensors
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_MOTION' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "2"
+                                    Case "2" ' Smoke sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_SMOKE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "3"
+                                    Case "3" ' Light Actuator (on/off) / Binary device (on/off), Alias for S_LIGHT 
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_LIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "4"
+                                    Case "4" ' Dimmable device of some kind
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_DIMMER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "5"
+                                    Case "5" ' Window covers or shades
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_COVER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "6"
+                                    Case "6" ' Temperature sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_TEMP' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "7"
+                                    Case "7" ' Humidity sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_HUM' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "8"
+                                    Case "8" ' Barometer sensor (Pressure)
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_BARO' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "9"
+                                    Case "9" ' Wind sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_WIND' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "10"
+                                    Case "10" ' Rain sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_RAIN' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "11"
+                                    Case "11" ' UV sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_UV' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "12"
+                                    Case "12" ' Weight sensor for scales etc.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_WEIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "13"
+                                    Case "13" ' Power measuring device, like power meters
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_POWER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "14"
+                                    Case "14" ' Heater device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_HEATE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "15"
+                                    Case "15" ' Distance sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_DISTANCE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "16"
+                                    Case "16" ' Light sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_LIGHT_LEVEL' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "17"
+                                    Case "17" ' Arduino node device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_ARDUINO_NODE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "18"
+                                    Case "18" ' Arduino repeating node device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_ARDUINO_RELAY' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "19"
+                                    Case "19" ' Lock device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_LOCK' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "20"
+                                    Case "20" ' Ir sender/receiver device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_IR' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "21"
+                                    Case "21" ' Water meter
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_WATER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "22"
+                                    Case "22" ' Air quality sensor e.g. MQ-2
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_AIR_QUALITY' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "23"
+                                    Case "23" ' Use this for custom sensors where no other fits.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_CUSTOM' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "24"
+                                    Case "24" ' Dust level sensor
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_DUST' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "25"
+                                    Case "25" ' Scene controller device
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_SCENE_CONTROLLER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "26" ' RGB light
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_RGB_LIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "27" ' RGBW light (with separate white component)
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_RGBW_LIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "28" ' Color sensor
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_COLOR_SENSOR' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "29" ' Thermostat/HVAC device
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_HVAC' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "30" ' Multimeter device
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_MULTIMETER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "31" ' Sprinkler device
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_SPRINKLER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "32" ' Water leak sensor
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_WATER_LEAK' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "33" ' Sound sensor
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_SOUND' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "34" ' Vibration sensor
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_VIBRATION' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "35" ' Moisture sensor
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_MOISTURE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
                                     Case Else
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'S_????' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
@@ -1000,125 +1301,146 @@ Public Class Driver_Arduino_USB
                             Case "1", "2" ' Message type "set/req"
                                 _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Message Type 'set/req' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                 Select Case aryLine(4)
-                                    Case "0"
+                                    Case "0" ' Temperature 
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_TEMP' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "1"
+                                    Case "1" ' Humidity
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HUM' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "2"
+                                    Case "2" ' Binary status. 0=off 1=on / Deprecated. Alias for V_STATUS. Light status. 0=off 1=on
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_LIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "3"
+                                    Case "3" ' Percentage value. 0-100 (%) / Deprecated. Alias for V_PERCENTAGE. Dimmer value. 0-100 (%)
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_DIMMER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "4"
+                                    Case "4" ' Atmospheric Pressure
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_PRESSURE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "5"
+                                    Case "5" ' Whether forecast. One of "stable", "sunny", "cloudy", "unstable", "thunderstorm" or "unknown"
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_FORECAST' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "6"
+                                    Case "6" ' Amount of rain
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_RAIN' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "7"
+                                    Case "7" ' Rate of rain
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_RAINRATE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "8"
+                                    Case "8" ' Windspeed
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_WIND' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "9"
+                                    Case "9" ' Gust
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_GUST' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "10"
+                                    Case "10" ' Wind direction
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_DIRECTION' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "11"
+                                    Case "11" ' UV light level
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_UV' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "12"
+                                    Case "12" ' Weight (for scales etc)
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_WEIGHT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "13"
+                                    Case "13" ' Distance
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_DISTANCE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "14"
+                                    Case "14" ' Impedance value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_IMPEDANCE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "15"
+                                    Case "15" ' Armed status of a security sensor. 1=Armed, 0=Bypassed
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_ARMED' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "16"
+                                    Case "16" ' Tripped status of a security sensor. 1=Tripped, 0=Untripped
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_TRIPPED' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "17"
+                                    Case "17" ' Watt value for power meters
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_WATT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "18"
+                                    Case "18" ' Accumulated number of KWH for a power meter
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_KWH' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "19"
+                                    Case "19" ' Turn on a scene
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_SCENE_ON' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "20"
+                                    Case "20" ' Turn of a scene
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_SCENE_OFF' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "21"
+                                    Case "21" ' Mode of header. One of "Off", "HeatOn", "CoolOn", or "AutoChangeOver"
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HEATER' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "22"
+                                    Case "22" ' HVAC/Heater fan speed ("Min", "Normal", "Max", "Auto")
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HEATER_SW' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "23"
+                                    Case "23" ' Uncalibrated light level. 0-100%. Use V_LEVEL for light level in lux.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_LIGHT_LEVEL' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "24"
+                                    Case "24" ' Custom value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VAR1' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "25"
+                                    Case "25" ' Custom value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VAR2' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "26"
+                                    Case "26" ' Custom value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VAR3' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "27"
+                                    Case "27" ' Custom value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VAR4' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "28"
+                                    Case "28" ' Custom value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VAR5' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "29"
+                                    Case "29" ' Window covering. Up.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_UP' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "30"
+                                    Case "30" ' Window covering. Down.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_DOWN' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "31"
+                                    Case "31" ' Window covering. Stop.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_STOP' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "32"
+                                    Case "32" ' Send out an IR-command
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_IR_SEND' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "33"
+                                    Case "33" ' received IR-command
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_IR_RECEIVE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "34"
+                                    Case "34" ' Flow of water (in meter)
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_FLOW' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "35"
+                                    Case "35" ' Water volume
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VOLUME' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "36"
+                                    Case "36" ' Set or get lock status. 1=Locked, 0=Unlocked
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_LOCK_STATUS' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "37"
+                                    Case "37" ' Used for sending level-value
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_DUST_LEVEL' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "38"
+                                    Case "38" ' Voltage level
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_VOLTAGE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
-                                    Case "39"
+                                    Case "39" ' Current level
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_CURRENT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "40" ' RGB value transmitted as ASCII hex string (I.e "ff0000" for red)
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_RGB' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "41" ' RGBW value transmitted as ASCII hex string (I.e "ff0000ff" for red + full white)
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_RGBW' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "42" ' Optional unique sensor id (e.g. OneWire DS1820b ids)
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_ID' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "43" ' Allows sensors to send in a string representing the unit prefix to be displayed in GUI. This is not parsed by controller! E.g. cm, m, km, inch.
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_UNIT_PREFIX' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "44" ' HVAC cold setpoint
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HVAC_SETPOINT_COOL' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "45" ' HVAC/Heater setpoint
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HVAC_SETPOINT_HEAT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                        traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
+                                    Case "46" ' Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn")
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_HVAC_FLOW_MODE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                         traitement(aryLine(2), aryLine(4), aryLine(0), aryLine(1), aryLine(5))
                                     Case Else
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'V_????' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
@@ -1127,36 +1449,42 @@ Public Class Driver_Arduino_USB
                             Case "3" ' Message type "internal"
                                 _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Message Type 'internal' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                 Select Case aryLine(4)
-                                    Case "0"
+                                    Case "0" ' Use this to report the battery level (in percent 0-100).
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_BATTERY_LEVEL' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "1"
+                                    Case "1" ' Sensors can request the current time from the Controller using this message. The time will be reported as the seconds since 1970
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_TIME' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "2"
+                                    Case "2" ' Used to request gateway version from controller.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_VERSION' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "3"
+                                    Case "3" ' Use this to request a unique node id from the controller.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_ID_REQUEST' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "4"
+                                    Case "4" ' Id response back to sensor. Payload contains sensor id.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_ID_RESPONSE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "5"
+                                    Case "5" ' Start/stop inclusion mode of the Controller (1=start, 0=stop).
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_INCLUSION_MODE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "6"
+                                    Case "6" ' Config request from node. Reply with (M)etric or (I)mperal back to sensor.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_CONFIG' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "7"
+                                    Case "7" ' When a sensor starts up, it broadcast a search request to all neighbor nodes. They reply with a I_FIND_PARENT_RESPONSE.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_FIND_PARENT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "8"
+                                    Case "8" ' Reply message type to I_FIND_PARENT request.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_FIND_PARENT_RESPONSE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "9"
+                                    Case "9" ' Sent by the gateway to the Controller to trace-log a message
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_LOG_MESSAGE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "10"
+                                    Case "10" ' A message that can be used to transfer child sensors (from EEPROM routing table) of a repeating node.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_CHILDREN' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "11"
+                                    Case "11" ' Optional sketch name that can be used to identify sensor in the Controller GUI
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_SKETCH_NAME' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "12"
+                                    Case "12" ' Optional sketch version that can be reported to keep track of the version of sensor in the Controller GUI.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_SKETCH_VERSION' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "13"
+                                    Case "13" ' Used by OTA firmware updates. Request for node to reboot.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_REBOOT' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
-                                    Case "14"
+                                    Case "14" ' Send by gateway to controller when startup is complete.
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_GATEWAY_READY' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                    Case "15" ' Used between sensors when initialting signing.
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_REQUEST_SIGNING' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                    Case "16" ' Used between sensors when requesting nonce.
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_GET_NONCE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
+                                    Case "17" ' Used between sensors for nonce response.
+                                        _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_GET_NONCE_RESPONSE' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                     Case Else
                                         _Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Datareceived", "Type 'I_????' " & aryLine(0) & ";" & aryLine(1) & ";" & aryLine(2) & ";" & aryLine(3) & ";" & aryLine(4) & ";" & aryLine(5))
                                 End Select
@@ -1277,6 +1605,36 @@ Public Class Driver_Arduino_USB
                         Case 25 'S_SCENE_CONTROLLER
                             _Type = "GENERIQUEBOOLEEN"
                             homidom_type = 12
+                        Case 26 'S_RGB_LIGHT
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 27 'S_RGBW_LIGHT
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 28 'S_COLOR_SENSOR
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 29 'S_HVAC
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 30 'S_MULTIMETER
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 31 'S_SPRINKLER
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 32 'S_WATER_LEAK
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 33 'S_SOUND
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 34 'S_VIBRATION
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
+                        Case 35 'S_MOISTURE
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 14
                     End Select
                 Case 1, 2
                     '_Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Traitement : ", "Noeud " & adresse & " Sensor " & adresse2 & " Type " & msgtype & " Valeur " & valeur)
@@ -1402,6 +1760,27 @@ Public Class Driver_Arduino_USB
                         Case 39 'V_CURRENT (courant mesurée)
                             _Type = "GENERIQUEVALUE"
                             homidom_type = 13
+                        Case 40 'V_RGB (RGB value transmitted as ASCII hex string (I.e "ff0000" for red))
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 41 'V_RGBW (RGBW value transmitted as ASCII hex string (I.e "ff0000ff" for red + full white))
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 42 'V_ID(Optional unique sensor id (e.g. OneWire DS1820b ids))
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 43 'V_UNIT_PREFIX (Allows sensors to send in a string representing the unit prefix to be displayed in GUI. This is not parsed by controller! E.g. cm, m, km, inch.)
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 44 'V_HVAC_SETPOINT_COOL (HVAC cold setpoint)
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 45 'V_HVAC_SETPOINT_HEAT (HVAC/Heater setpoint)
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
+                        Case 46 'V_HVAC_FLOW_MODE (Flow mode for HVAC ("Auto", "ContinuousOn", "PeriodicOn"))
+                            _Type = "GENERIQUEVALUE"
+                            homidom_type = 13
                         Case Else
                             _Server.Log(TypeLog.ERREUR, TypeSource.DRIVER, Me.Nom & " Process", "Le type de device n'appartient pas à ce driver: " & type)
                             Exit Sub
@@ -1413,14 +1792,14 @@ Public Class Driver_Arduino_USB
             If (listedevices.Count = 1) Then
                 If deviceupdate = True Then
                     listedevices.Item(0).Value = valeur
-                    _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " Reception : ", "Noeud N° " & adresse & " Capteur/Actionneur " & adresse2 & " Valeur " & valeur)
+                    _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " Reception : ", "Noeud N° " & adresse & " capteur/actionneur " & adresse2 & " Valeur " & valeur)
                 End If
             ElseIf (listedevices.Count > 1) Then
                 For i As Integer = 0 To listedevices.Count - 1
                     If listedevices.Item(i).adresse2.ToUpper() = adresse2.ToUpper() Then
                         If deviceupdate = True Then
                             listedevices.Item(i).Value = valeur
-                            _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " Reception : ", "Noeud N° " & adresse & " Capteur/Actionneur " & adresse2 & " Valeur " & valeur)
+                            _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " Reception : ", "Noeud N° " & adresse & " capteur/actionneur " & adresse2 & " Valeur " & valeur)
                         End If
                     End If
                 Next
