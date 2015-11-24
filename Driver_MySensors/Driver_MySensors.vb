@@ -314,12 +314,12 @@ Public Class Driver_Arduino_USB
                     _BAUD = 57600
                     _RCVERROR = True
                 End Try
-                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_DEBUG " & _DEBUG)
-                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_BAUD " & _BAUD)
-                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_RCVERROR " & _RCVERROR)
-                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_ACKNOLEDGE " & _ACKNOLEDGE)
+                '_Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_DEBUG " & _DEBUG)
+                '_Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_BAUD " & _BAUD)
+                '_Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_RCVERROR " & _RCVERROR)
+                '_Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_ACKNOLEDGE " & _ACKNOLEDGE)
                 _Ack = Convert.ToInt32(_ACKNOLEDGE)
-                _Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_Ack " & _Ack)
+                '_Server.Log(TypeLog.INFO, TypeSource.DRIVER, Me.Nom & " AdvParams", "_Ack " & _Ack)
 
                 If _Com = "" Or _Com = " " Then
                     _Server.Log(TypeLog.ERREUR, TypeSource.DRIVER, Me.Nom & " Start", "Le port COM est vide veuillez le renseigner")
@@ -1116,8 +1116,8 @@ Public Class Driver_Arduino_USB
             add_devicecommande("VAR", "Envoyer une valeur de type string à une variable V_VARx", 1)
 
             'Libellé Device
-            Add_LibelleDevice("ADRESSE1", "ID du noeud", "Valeur de type numérique")
-            Add_LibelleDevice("ADRESSE2", "ID du capteur ou pin", "Valeur de type numérique")
+            Add_LibelleDevice("ADRESSE1", "ID du noeud MySensors", "Valeur de type numérique")
+            Add_LibelleDevice("ADRESSE2", "ID du capteur/actionneur", "Valeur de type numérique")
             Add_LibelleDevice("SOLO", "@", "")
             Add_LibelleDevice("MODELE", "TYPE MySensors", "Détail des types dans la documentation du driver", "V_ARMED|V_CURRENT|V_DIMMER|V_DIRECTION|V_DISTANCE|V_DOWN|V_DUST_LEVEL|V_FLOWVOLUME|V_FORECAST|V_GUST|V_HEATER|V_HEATER_SW|V_HUM|V_IMPEDANCE|V_IR_SEND|V_IR_RECEIVE|V_LIGHT|V_LIGHT_LEVEL|V_LOCK_STATUS|V_KWH|V_PRESSURE|V_RAIN|V_RAINRATE|V_SCENE_ON|V_SCENE_OFF|V_TEMP|V_STOP|V_TRIPPED|V_UP|V_UV|V_VAR1|V_VAR2|V_VAR3|V_VAR4|V_VAR5|V_VOLTAGE|V_WATT|V_WEIGHT|V_WIND")
             Add_LibelleDevice("REFRESH", "Refresh", "0")
@@ -1597,8 +1597,8 @@ Public Class Driver_Arduino_USB
                             _Type = "GENERIQUEVALUE"
                             homidom_type = 14
                         Case 23 'S_CUSTOM
-                            _Type = "GENERIQUEVALUE"
-                            homidom_type = 14
+                            _Type = "GENERIQUESTRING"
+                            homidom_type = 13
                         Case 24 'S_DUST
                             _Type = "GENERIQUEVALUE"
                             homidom_type = 14
