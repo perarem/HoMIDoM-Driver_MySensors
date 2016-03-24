@@ -1655,6 +1655,93 @@ Public Class Driver_Arduino_USB
                 Case 1, 2
                     '_Server.Log(TypeLog.DEBUG, TypeSource.DRIVER, Me.Nom & " Traitement : ", "Noeud " & adresse & " Sensor " & adresse2 & " Type " & msgtype & " Valeur " & valeur)
                     deviceupdate = True
+
+                    ' Correspondance type HoMIDoM => MySensors
+
+                    '    _Type = "APPAREIL"
+                    '    homidom_type = 0
+
+                    '    _Type = "AUDIO"
+                    '    homidom_type = 1
+
+                    '    _Type = "BAROMETRE"
+                    '    homidom_type = 2
+
+                    '    _Type = "BATTERIE"
+                    '    homidom_type = 3
+
+                    '    _Type = "COMPTEUR"
+                    '    homidom_type = 4
+
+                    '    _Type = "CONTACT"
+                    '    homidom_type = 5
+
+                    '    _Type = "DETECTEUR"
+                    '    homidom_type = 6
+
+                    '    _Type = "DIRECTIONVENT"
+                    '    homidom_type = 7
+
+                    '    _Type = "ENERGIEINSTANTANEE"
+                    '    homidom_type = 8
+
+                    '    _Type = "ENERGIETOTALE"
+                    '    homidom_type = 9
+
+                    '    _Type = "FREEBOX"
+                    '    homidom_type = 10
+
+                    '    _Type = "GENERIQUEBOOLEEN"
+                    '    homidom_type = 11
+
+                    '    _Type = "GENERIQUESTRING"
+                    '    homidom_type = 12
+
+                    '    _Type = "GENERIQUEVALUE"
+                    '    homidom_type = 13
+
+                    '    _Type = "HUMIDITE"
+                    '    homidom_type = 14
+
+                    '    _Type = "LAMPE"
+                    '    homidom_type = 15
+
+                    '    _Type = "METEO"
+                    '    homidom_type = 16
+
+                    '    _Type = "MULTIMEDIA"
+                    '    homidom_type = 17
+
+                    '    _Type = "PLUIECOURANT"
+                    '    homidom_type = 18
+
+                    '    _Type = "PLUIETOTAL"
+                    '    homidom_type = 19
+
+                    '    _Type = "SWITCH"
+                    '    homidom_type = 20
+
+                    '    _Type = "TELECOMMANDE"
+                    '    homidom_type = 21
+
+                    '   _Type = "TEMPERATURE"
+                    '    homidom_type = 22
+
+                    '    _Type = "TEMPERATURECONSIGNE"
+                    '    homidom_type = 23
+
+                    '    _Type = "UV"
+                    '    homidom_type = 24
+
+                    '    _Type = "VITESSEVENT"
+                    '    homidom_type = 25
+
+                    '    _Type = "VOLET"
+                    '    homidom_type = 26
+
+                    '    _Type = "LAMPERGBW"
+                    '    homidom_type = 27
+
                     Select Case type
                         Case 0 'V_TEMP (température)
                             _Type = "TEMPERATURE"
@@ -1711,8 +1798,8 @@ Public Class Driver_Arduino_USB
                             _Type = "ENERGIEINSTANTANEE"
                             homidom_type = 8
                         Case 18 'V_KMH (nombre cumulé de KW/h)
-                            _Type = "GENERIQUEVALUE"
-                            homidom_type = 13
+                            _Type = "ENERGIETOTALE"
+                            homidom_type = 9
                         Case 19 'V_SCENE_ON (activer un sénario)
                             _Type = "GENERIQUEBOOLEEN"
                             homidom_type = 11
